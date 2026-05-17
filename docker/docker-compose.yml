@@ -1,0 +1,16 @@
+services:
+  ndropd:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: ndropd:latest
+    ports:
+      - "8080:8080"
+    environment:
+      PORT:        "8080"
+      MAX_SIZE_MB: "10"
+      TTL_HOURS:   "1"
+    restart: unless-stopped
+
+# Optional: put behind a reverse proxy (nginx, Caddy) for TLS termination.
+# TLS is NOT handled by ndropd itself.

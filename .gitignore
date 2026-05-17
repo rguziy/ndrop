@@ -1,0 +1,29 @@
+# Build artifacts
+/build
+/ndrop
+/ndropd
+
+# Go build cache
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+
+# Vendor dir
+/vendor/
+
+# IDE/editor files
+*.swp
+*.swo
+*~
+.DS_Store
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
+
+# Local config
+*.toml
+*.pid

@@ -1,0 +1,9 @@
+.git
+.gitignore
+README.md
+trd-ndrop.md
+docker/build.sh
+**/*_test.go
+.vscode
+.idea
+*.log
