@@ -32,13 +32,34 @@ type pullResponse struct {
 
 // Handler holds the dependencies shared across HTTP handlers.
 type Handler struct {
-	store    *Store
-	maxBytes int64
+	store          *Store
+	maxBytes       int64
+	allowAnyAPIKey bool
+	allowedAPIKeys map[string]struct{}
+}
+
+// AuthConfig controls which API keys may use the server.
+type AuthConfig struct {
+	AllowAnyAPIKey bool
+	AllowedAPIKeys []string
 }
 
 // NewHandler creates a Handler and registers routes on mux.
-func NewHandler(store *Store, maxBytes int64) http.Handler {
-	h := &Handler{store: store, maxBytes: maxBytes}
+func NewHandler(store *Store, maxBytes int64, auth AuthConfig) http.Handler {
+	allowedAPIKeys := make(map[string]struct{}, len(auth.AllowedAPIKeys))
+	for _, apiKey := range auth.AllowedAPIKeys {
+		apiKey = strings.TrimSpace(apiKey)
+		if apiKey != "" {
+			allowedAPIKeys[apiKey] = struct{}{}
+		}
+	}
+
+	h := &Handler{
+		store:          store,
+		maxBytes:       maxBytes,
+		allowAnyAPIKey: auth.AllowAnyAPIKey,
+		allowedAPIKeys: allowedAPIKeys,
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/push", h.handlePush)
@@ -47,18 +68,26 @@ func NewHandler(store *Store, maxBytes int64) http.Handler {
 	return mux
 }
 
-// extractToken parses the Bearer token from the Authorization header.
-func extractToken(r *http.Request) (string, bool) {
+// extractAPIKey parses the Bearer API key from the Authorization header.
+func extractAPIKey(r *http.Request) (string, bool) {
 	header := r.Header.Get("Authorization")
 	if !strings.HasPrefix(header, "Bearer ") {
 		return "", false
 	}
-	token := strings.TrimPrefix(header, "Bearer ")
-	token = strings.TrimSpace(token)
-	if token == "" {
+	apiKey := strings.TrimPrefix(header, "Bearer ")
+	apiKey = strings.TrimSpace(apiKey)
+	if apiKey == "" {
 		return "", false
 	}
-	return token, true
+	return apiKey, true
+}
+
+func (h *Handler) isAPIKeyAllowed(apiKey string) bool {
+	if h.allowAnyAPIKey {
+		return true
+	}
+	_, ok := h.allowedAPIKeys[apiKey]
+	return ok
 }
 
 // handlePush handles POST /push.
@@ -69,8 +98,8 @@ func (h *Handler) handlePush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, ok := extractToken(r)
-	if !ok {
+	apiKey, ok := extractAPIKey(r)
+	if !ok || !h.isAPIKeyAllowed(apiKey) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -93,7 +122,7 @@ func (h *Handler) handlePush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bucketID, err := crypto.BucketID(token)
+	bucketID, err := crypto.BucketID(apiKey)
 	if err != nil {
 		log.Printf("bucket derivation error: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -121,13 +150,13 @@ func (h *Handler) handlePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, ok := extractToken(r)
-	if !ok {
+	apiKey, ok := extractAPIKey(r)
+	if !ok || !h.isAPIKeyAllowed(apiKey) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	bucketID, err := crypto.BucketID(token)
+	bucketID, err := crypto.BucketID(apiKey)
 	if err != nil {
 		log.Printf("bucket derivation error: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)

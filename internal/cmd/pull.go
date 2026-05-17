@@ -47,7 +47,7 @@ Examples:
 				return fmt.Errorf("--clipboard, --save, and --stdout are mutually exclusive")
 			}
 
-			cl := client.New(cfg.Server.URL, cfg.Server.Token)
+			cl := client.New(cfg.Server.URL, cfg.Server.APIKey)
 			resp, err := cl.Pull()
 			if err != nil {
 				return err
@@ -59,7 +59,7 @@ Examples:
 			}
 
 			// Decrypt.
-			plaintext, err := crypto.Decrypt(cfg.Server.Token, resp.Data, resp.Nonce)
+			plaintext, err := crypto.Decrypt(cfg.Server.APIKey, resp.Data, resp.Nonce)
 			if err != nil {
 				return fmt.Errorf("decrypt: %w", err)
 			}

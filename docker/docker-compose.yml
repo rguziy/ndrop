@@ -10,6 +10,7 @@ services:
       PORT:        "8080"
       MAX_SIZE_MB: "10"
       TTL_HOURS:   "1"
+      ALLOW_ANY_API_KEY: "true"
     restart: unless-stopped
 
 # Optional: put behind a reverse proxy (nginx, Caddy) for TLS termination.

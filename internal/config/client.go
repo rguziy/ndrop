@@ -15,8 +15,8 @@ type ClientConfig struct {
 }
 
 type ServerSection struct {
-	URL   string `toml:"url"`
-	Token string `toml:"token"`
+	URL    string `toml:"url"`
+	APIKey string `toml:"api_key"`
 }
 
 type PullSection struct {
@@ -42,8 +42,8 @@ func DefaultConfigPath() string {
 }
 
 // LoadClient loads config from path, applies env overrides, then flag overrides.
-// flagURL and flagToken are non-empty only when explicitly set via CLI flag.
-func LoadClient(path, flagURL, flagToken string) (ClientConfig, error) {
+// flagURL and flagAPIKey are non-empty only when explicitly set via CLI flag.
+func LoadClient(path, flagURL, flagAPIKey string) (ClientConfig, error) {
 	cfg := DefaultClientConfig()
 
 	// Load from file if it exists.
@@ -57,16 +57,16 @@ func LoadClient(path, flagURL, flagToken string) (ClientConfig, error) {
 	if v := os.Getenv("NDROP_URL"); v != "" {
 		cfg.Server.URL = v
 	}
-	if v := os.Getenv("NDROP_TOKEN"); v != "" {
-		cfg.Server.Token = v
+	if v := os.Getenv("NDROP_API_KEY"); v != "" {
+		cfg.Server.APIKey = v
 	}
 
 	// CLI flag overrides (highest priority).
 	if flagURL != "" {
 		cfg.Server.URL = flagURL
 	}
-	if flagToken != "" {
-		cfg.Server.Token = flagToken
+	if flagAPIKey != "" {
+		cfg.Server.APIKey = flagAPIKey
 	}
 
 	return cfg, nil
@@ -77,8 +77,8 @@ func (c ClientConfig) Validate() error {
 	if c.Server.URL == "" {
 		return errors.New("server URL is required (set in config or --server flag or NDROP_URL env)")
 	}
-	if c.Server.Token == "" {
-		return errors.New("token is required (set in config or --token flag or NDROP_TOKEN env)")
+	if c.Server.APIKey == "" {
+		return errors.New("API key is required (set in config or --api-key flag or NDROP_API_KEY env)")
 	}
 	return nil
 }

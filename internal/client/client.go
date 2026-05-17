@@ -43,15 +43,15 @@ type PullResponse struct {
 // Client handles HTTP communication with the ndrop server.
 type Client struct {
 	baseURL string
-	token   string
+	apiKey  string
 	http    *http.Client
 }
 
-// New creates a Client for the given server URL and auth token.
-func New(baseURL, token string) *Client {
+// New creates a Client for the given server URL and API key.
+func New(baseURL, apiKey string) *Client {
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
-		token:   token,
+		apiKey:  apiKey,
 		http:    &http.Client{Timeout: defaultTimeout},
 	}
 }
@@ -68,7 +68,7 @@ func (c *Client) Push(req PushRequest) error {
 		return fmt.Errorf("build request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+c.token)
+	httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
 
 	resp, err := c.http.Do(httpReq)
 	if err != nil {
@@ -80,7 +80,7 @@ func (c *Client) Push(req PushRequest) error {
 	case http.StatusOK:
 		return nil
 	case http.StatusUnauthorized:
-		return fmt.Errorf("unauthorized: check your token")
+		return fmt.Errorf("unauthorized: check your API key")
 	case http.StatusRequestEntityTooLarge:
 		return fmt.Errorf("payload too large: exceeds server limit")
 	default:
@@ -96,7 +96,7 @@ func (c *Client) Pull() (*PullResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
-	httpReq.Header.Set("Authorization", "Bearer "+c.token)
+	httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
 
 	resp, err := c.http.Do(httpReq)
 	if err != nil {
@@ -108,7 +108,7 @@ func (c *Client) Pull() (*PullResponse, error) {
 	case http.StatusNoContent:
 		return nil, nil
 	case http.StatusUnauthorized:
-		return nil, fmt.Errorf("unauthorized: check your token")
+		return nil, fmt.Errorf("unauthorized: check your API key")
 	case http.StatusOK:
 		// continue below
 	default:

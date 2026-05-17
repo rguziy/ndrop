@@ -59,7 +59,10 @@ func runServer() {
 	maxBytes := cfg.MaxSizeMB << 20 // MB → bytes
 
 	store := server.NewStore(cfg.TTL)
-	handler := server.NewHandler(store, maxBytes)
+	handler := server.NewHandler(store, maxBytes, server.AuthConfig{
+		AllowAnyAPIKey: cfg.AllowAnyAPIKey,
+		AllowedAPIKeys: cfg.AllowedAPIKeys,
+	})
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -73,8 +76,8 @@ func runServer() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("ndropd listening on :%s  max_size=%dMB  ttl=%s",
-			cfg.Port, cfg.MaxSizeMB, cfg.TTL)
+		log.Printf("ndropd listening on :%s  max_size=%dMB  ttl=%s  allow_any_api_key=%t  allowed_api_keys=%d",
+			cfg.Port, cfg.MaxSizeMB, cfg.TTL, cfg.AllowAnyAPIKey, len(cfg.AllowedAPIKeys))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}
@@ -170,7 +173,7 @@ func initServerConfig(force bool) error {
 		return fmt.Errorf("stat config: %w", err)
 	}
 
-	content := "port = \"8080\"\nmax_size_mb = 10\nttl_hours = 1\n"
+	content := "port = \"8080\"\nmax_size_mb = 10\nttl_hours = 1\nallow_any_api_key = true\nallowed_api_keys = []\n"
 	if err := os.WriteFile(cfgPath, []byte(content), 0o644); err != nil {
 		return fmt.Errorf("write config: %w", err)
 	}

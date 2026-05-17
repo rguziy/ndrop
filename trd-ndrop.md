@@ -17,7 +17,7 @@
 - Transfer text and files between arbitrary devices over HTTPS
 - No dependency on cloud providers (Dropbox, Google Drive, etc.)
 - Self-hosted server deployable via Docker on local machines, home labs, or VPS instances
-- Simple token-based isolation: one token = one shared buffer
+- Simple API-key-based isolation: one API key = one shared buffer
 - End-to-end encryption: server never sees plaintext
 - Minimal dependencies, pure Go where possible
 
@@ -25,7 +25,7 @@
 
 - Real-time sync / watch mode
 - Clipboard history
-- Multi-user ACL or per-device tokens
+- Multi-user ACL or per-device API keys
 - Browser or GUI clients
 - OS clipboard integration for files (text only for `--clipboard`)
 
@@ -36,7 +36,7 @@
 ```
 [Device A]                [ndropd]              [Device B]
   CLI client  -- HTTPS -->  in-memory store  -- HTTPS -->  CLI client
-  push text                 bucket per token               pull text
+  push text                 bucket per API key             pull text
   push file                 TTL-based expiry               pull file → save
 ```
 
@@ -57,14 +57,14 @@
 
 ### 4.3 Isolation Model
 
-Each token maps to an isolated buffer on the server:
+Each API key maps to an isolated buffer on the server:
 
 ```
-bucket_id = HKDF(token, "ndrop-bucket")   → used as map key
-enc_key   = HKDF(token, "ndrop-encrypt")  → used for AES-256-GCM
+bucket_id = HKDF(api_key, "ndrop-bucket")   → used as map key
+enc_key   = HKDF(api_key, "ndrop-encrypt")  → used for AES-256-GCM
 ```
 
-The server stores only `bucket_id` (a derived value) and the encrypted ciphertext. The plaintext token and decrypted payload are never visible to the server.
+The server stores only `bucket_id` (a derived value) and the encrypted ciphertext. The raw API key is received in the `Authorization` header for routing and optional allowlist checks, but is not stored.
 
 ---
 
@@ -75,10 +75,12 @@ The server stores only `bucket_id` (a derived value) and the encrypted ciphertex
 All endpoints require:
 
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <api-key>
 ```
 
 Returns `401 Unauthorized` if the header is missing or malformed.
+
+Server deployments may also restrict access to a configured allowlist. If `allow_any_api_key` is `false`, the bearer API key must be present in `allowed_api_keys`, otherwise the server returns `401 Unauthorized`.
 
 ---
 
@@ -145,11 +147,11 @@ No body. Authorization header required.
 
 ### 6.1 Key Derivation
 
-Both the bucket identifier and encryption key are derived from the token using HKDF-SHA256 (RFC 5869):
+Both the bucket identifier and encryption key are derived from the API key using HKDF-SHA256 (RFC 5869):
 
 ```
-bucket_id = HKDF-SHA256(ikm=token, salt=nil, info="ndrop-bucket",  len=32)
-enc_key   = HKDF-SHA256(ikm=token, salt=nil, info="ndrop-encrypt", len=32)
+bucket_id = HKDF-SHA256(ikm=api_key, salt=nil, info="ndrop-bucket",  len=32)
+enc_key   = HKDF-SHA256(ikm=api_key, salt=nil, info="ndrop-encrypt", len=32)
 ```
 
 ### 6.2 Encryption Scheme
@@ -166,8 +168,9 @@ nonce_field = base64(nonce)
 
 ### 6.3 Security Properties
 
-- The server cannot decrypt stored data (no access to token or enc_key)
-- The server stores only `bucket_id` as a map key, not the raw token
+- The server stores only encrypted payload data
+- The server stores only `bucket_id` as a map key, not the raw API key
+- A trusted server process receives the API key per request and can enforce an allowlist
 - Replay protection is not in scope for v0.1 (TTL provides partial mitigation)
 
 ---
@@ -251,7 +254,7 @@ Creates `~/.config/ndrop/ndrop.toml` with default local server settings:
 ```toml
 [server]
 url = "http://localhost:8080"
-token = "your-token"
+api_key = "your-api-key"
 
 [pull]
 default_save_dir = "~/Downloads"
@@ -273,7 +276,7 @@ If `ndropd` is run with no arguments, it prints help.
 ```bash
 --config   path to config file (default: ~/.config/ndrop/ndrop.toml)
 --server   server URL (overrides config and NDROP_URL)
---token    auth token (overrides config and NDROP_TOKEN)
+--api-key  API key (overrides config and NDROP_API_KEY)
 ```
 
 ---
@@ -285,7 +288,7 @@ If `ndropd` is run with no arguments, it prints help.
 ```toml
 [server]
 url   = "http://localhost:8080"
-token = "my-secret-token"
+api_key = "my-secret-api-key"
 
 [pull]
 default_save_dir = "~/Downloads"
@@ -297,6 +300,15 @@ default_save_dir = "~/Downloads"
 port = "8080"
 max_size_mb = 10
 ttl_hours = 1
+allow_any_api_key = true
+allowed_api_keys = []
+```
+
+Set `allow_any_api_key = false` to reject unknown API keys:
+
+```toml
+allow_any_api_key = false
+allowed_api_keys = ["laptop-key", "phone-key"]
 ```
 
 ### 9.3 Server Environment Overrides
@@ -306,3 +318,5 @@ Environment variables take priority over `ndropd.toml`:
 - `PORT`
 - `MAX_SIZE_MB`
 - `TTL_HOURS`
+- `ALLOW_ANY_API_KEY`
+- `ALLOWED_API_KEYS`

@@ -16,7 +16,7 @@ Similar in spirit to AirDrop-style sharing, but uses HTTP and E2E encryption ins
 - 🔐 End-to-end encrypted content transfer
 - 📤 Push text, files, or clipboard contents from the CLI
 - 📥 Pull shared content to stdout, system clipboard, or saved file
-- 🧩 Token-based isolation per shared buffer
+- 🧩 API-key-based isolation per shared buffer
 - ⚙️ Configurable with TOML, CLI flags, and environment variables
 - 🖥️ `ndropd` CLI with `init`, `start`, `stop`, and `help`
 
@@ -33,7 +33,7 @@ This creates `~/.config/ndrop/ndrop.toml` with:
 ```toml
 [server]
 url = "http://localhost:8080"
-token = "your-token"
+api_key = "your-api-key"
 
 [pull]
 default_save_dir = "~/Downloads"
@@ -51,6 +51,8 @@ This creates `~/.config/ndrop/ndropd.toml` with:
 port = "8080"
 max_size_mb = 10
 ttl_hours = 1
+allow_any_api_key = true
+allowed_api_keys = []
 ```
 
 ### 3. Start the server
@@ -113,6 +115,24 @@ ttl_hours = 1
 - `ndropd stop` — stop the running server
 - `ndropd help` — show help
 
+## How encryption works
+
+`ndrop` uses the configured API key for two separate purposes:
+
+- It derives a stable `bucket_id`, which selects the shared buffer on the server.
+- It derives an AES-256-GCM encryption key, which encrypts and decrypts the payload.
+
+When you run `ndrop push`, the client encrypts the text or file before uploading it. The server stores only:
+
+- the derived `bucket_id`
+- encrypted `data`
+- the `nonce` needed to decrypt that encrypted payload
+- metadata such as device name, MIME type, and filename
+
+The `nonce` is a random 12-byte value generated for every push. It is not secret, but it must be unique for each encryption with the same API key. The pull client receives `data` and `nonce`, then decrypts locally using the same API key.
+
+The raw API key is sent to the server in the `Authorization: Bearer <api-key>` header so the server can route the request and optionally enforce `allowed_api_keys`. The server does not store the raw API key, but deployments should still use HTTPS when the server is accessed over a network.
+
 ## Configuration
 
 ### Client config
@@ -122,7 +142,7 @@ File: `~/.config/ndrop/ndrop.toml`
 ```toml
 [server]
 url = "http://localhost:8080"
-token = "my-secret-token"
+api_key = "my-secret-api-key"
 
 [pull]
 default_save_dir = "~/Downloads"
@@ -136,6 +156,15 @@ File: `~/.config/ndrop/ndropd.toml`
 port = "8080"
 max_size_mb = 10
 ttl_hours = 1
+allow_any_api_key = true
+allowed_api_keys = []
+```
+
+Set `allow_any_api_key = false` and list accepted keys to reject unknown clients:
+
+```toml
+allow_any_api_key = false
+allowed_api_keys = ["laptop-key", "phone-key"]
 ```
 
 ### Environment variables
@@ -143,13 +172,15 @@ ttl_hours = 1
 Client config can be overridden with:
 
 - `NDROP_URL`
-- `NDROP_TOKEN`
+- `NDROP_API_KEY`
 
 Server config can be overridden with:
 
 - `PORT`
 - `MAX_SIZE_MB`
 - `TTL_HOURS`
+- `ALLOW_ANY_API_KEY`
+- `ALLOWED_API_KEYS`
 
 ## Docker
 
@@ -175,6 +206,39 @@ The compose service publishes port `8080` and sets:
 - `PORT=8080`
 - `MAX_SIZE_MB=10`
 - `TTL_HOURS=1`
+- `ALLOW_ANY_API_KEY=true`
+
+## Linux systemd
+
+A sample systemd unit is available at `deploy/systemd/ndropd.service`.
+
+It assumes:
+
+- `ndropd` is installed at `/usr/local/bin/ndropd`
+- a dedicated Linux user and group named `ndrop` exist
+- server state is stored under `/var/lib/ndrop`
+
+Example setup:
+
+```bash
+sudo useradd --system --home-dir /var/lib/ndrop --create-home --shell /usr/sbin/nologin ndrop
+sudo install -m 0755 ndropd /usr/local/bin/ndropd
+sudo install -m 0644 deploy/systemd/ndropd.service /etc/systemd/system/ndropd.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now ndropd
+```
+
+Before starting the service on a public host, edit `/etc/systemd/system/ndropd.service` and replace:
+
+```ini
+Environment=ALLOWED_API_KEYS=change-me
+```
+
+For multiple API keys, use a comma-separated value:
+
+```ini
+Environment=ALLOWED_API_KEYS=laptop-key,phone-key
+```
 
 ## Build
 

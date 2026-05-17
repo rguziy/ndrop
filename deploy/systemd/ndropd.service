@@ -1,0 +1,28 @@
+[Unit]
+Description=ndrop self-hosted transfer server
+Documentation=https://github.com/rguziy/ndrop
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ndrop
+Group=ndrop
+Environment=HOME=/var/lib/ndrop
+Environment=PORT=8080
+Environment=MAX_SIZE_MB=10
+Environment=TTL_HOURS=1
+Environment=ALLOW_ANY_API_KEY=false
+Environment=ALLOWED_API_KEYS=change-me
+ExecStart=/usr/local/bin/ndropd start
+Restart=on-failure
+RestartSec=5s
+StateDirectory=ndrop
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ndrop
+
+[Install]
+WantedBy=multi-user.target

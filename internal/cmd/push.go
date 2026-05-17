@@ -102,14 +102,14 @@ Examples:
 				return fmt.Errorf("empty payload: nothing to push")
 			}
 
-			datab64, nonceb64, err := crypto.Encrypt(cfg.Server.Token, payload)
+			datab64, nonceb64, err := crypto.Encrypt(cfg.Server.APIKey, payload)
 			if err != nil {
 				return fmt.Errorf("encrypt: %w", err)
 			}
 
 			hostname, _ := os.Hostname()
 
-			cl := client.New(cfg.Server.URL, cfg.Server.Token)
+			cl := client.New(cfg.Server.URL, cfg.Server.APIKey)
 			if err := cl.Push(client.PushRequest{
 				Device: hostname,
 				Type:   entryType,

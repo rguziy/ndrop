@@ -12,12 +12,12 @@ import (
 type globalFlags struct {
 	ConfigPath string
 	ServerURL  string
-	Token      string
+	APIKey     string
 }
 
 // loadConfig is a helper used by every subcommand to build a validated config.
 func loadConfig(g *globalFlags) (config.ClientConfig, error) {
-	cfg, err := config.LoadClient(g.ConfigPath, g.ServerURL, g.Token)
+	cfg, err := config.LoadClient(g.ConfigPath, g.ServerURL, g.APIKey)
 	if err != nil {
 		return cfg, fmt.Errorf("load config: %w", err)
 	}
@@ -37,7 +37,7 @@ func NewRootCmd() *cobra.Command {
 		Long: `ndrop — a cross-platform data transfer utility.
 
 Content is end-to-end encrypted: the server only stores ciphertext
-derived from your token.
+derived from your API key.
 
 Push supports:
   ndrop push "text"             inline text
@@ -53,9 +53,12 @@ Pull supports:
   ndrop pull --stdout           raw bytes to stdout
 
 Configuration: ~/.config/ndrop/ndrop.toml
-Environment:   NDROP_URL, NDROP_TOKEN`,
+Environment:   NDROP_URL, NDROP_API_KEY`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		CompletionOptions: cobra.CompletionOptions{
+			DisableDefaultCmd: true,
+		},
 	}
 
 	// Global persistent flags available to every subcommand.
@@ -69,8 +72,8 @@ Environment:   NDROP_URL, NDROP_TOKEN`,
 		"server URL (overrides config and NDROP_URL)",
 	)
 	root.PersistentFlags().StringVar(
-		&globals.Token, "token", "",
-		"auth token (overrides config and NDROP_TOKEN)",
+		&globals.APIKey, "api-key", "",
+		"API key (overrides config and NDROP_API_KEY)",
 	)
 
 	root.AddCommand(

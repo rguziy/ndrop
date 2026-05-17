@@ -18,9 +18,9 @@ const (
 	keyLen      = 32 // AES-256
 )
 
-// deriveKey runs HKDF-SHA256 over the token with the given info label.
-func deriveKey(token, info string) ([]byte, error) {
-	r := hkdf.New(sha256.New, []byte(token), nil, []byte(info))
+// deriveKey runs HKDF-SHA256 over the API key with the given info label.
+func deriveKey(apiKey, info string) ([]byte, error) {
+	r := hkdf.New(sha256.New, []byte(apiKey), nil, []byte(info))
 	key := make([]byte, keyLen)
 	if _, err := io.ReadFull(r, key); err != nil {
 		return nil, err
@@ -28,20 +28,20 @@ func deriveKey(token, info string) ([]byte, error) {
 	return key, nil
 }
 
-// BucketID derives a stable bucket identifier from a token.
-// The server uses this as a map key and never sees the raw token.
-func BucketID(token string) (string, error) {
-	key, err := deriveKey(token, infoBucket)
+// BucketID derives a stable bucket identifier from an API key.
+// The server uses this as a map key and does not store the raw API key.
+func BucketID(apiKey string) (string, error) {
+	key, err := deriveKey(apiKey, infoBucket)
 	if err != nil {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(key), nil
 }
 
-// Encrypt encrypts plaintext using AES-256-GCM with a key derived from token.
+// Encrypt encrypts plaintext using AES-256-GCM with a key derived from an API key.
 // Returns (base64(ciphertext), base64(nonce), error).
-func Encrypt(token string, plaintext []byte) (string, string, error) {
-	encKey, err := deriveKey(token, infoEncrypt)
+func Encrypt(apiKey string, plaintext []byte) (string, string, error) {
+	encKey, err := deriveKey(apiKey, infoEncrypt)
 	if err != nil {
 		return "", "", err
 	}
@@ -68,9 +68,9 @@ func Encrypt(token string, plaintext []byte) (string, string, error) {
 		nil
 }
 
-// Decrypt decrypts a base64-encoded ciphertext+nonce pair using the token.
-func Decrypt(token, datab64, nonceb64 string) ([]byte, error) {
-	encKey, err := deriveKey(token, infoEncrypt)
+// Decrypt decrypts a base64-encoded ciphertext+nonce pair using the API key.
+func Decrypt(apiKey, datab64, nonceb64 string) ([]byte, error) {
+	encKey, err := deriveKey(apiKey, infoEncrypt)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func Decrypt(token, datab64, nonceb64 string) ([]byte, error) {
 
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		return nil, errors.New("decryption failed: invalid token or corrupted data")
+		return nil, errors.New("decryption failed: invalid API key or corrupted data")
 	}
 
 	return plaintext, nil

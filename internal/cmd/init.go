@@ -29,7 +29,7 @@ func newInitCmd() *cobra.Command {
 				return fmt.Errorf("inspect config file: %w", err)
 			}
 
-			content := fmt.Sprintf("[server]\nurl = \"http://localhost:8080\"\ntoken = \"your-token\"\n\n[pull]\ndefault_save_dir = \"%s\"\n", config.DefaultClientConfig().Pull.DefaultSaveDir)
+			content := fmt.Sprintf("[server]\nurl = \"http://localhost:8080\"\napi_key = \"your-api-key\"\n\n[pull]\ndefault_save_dir = \"%s\"\n", config.DefaultClientConfig().Pull.DefaultSaveDir)
 			if err := os.WriteFile(cfgPath, []byte(content), 0o644); err != nil {
 				return fmt.Errorf("write config: %w", err)
 			}
