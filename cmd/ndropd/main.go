@@ -16,15 +16,18 @@ import (
 
 	"github.com/rguziy/ndrop/internal/config"
 	"github.com/rguziy/ndrop/internal/server"
+	"github.com/rguziy/ndrop/internal/version"
 )
 
 func main() {
 	if len(os.Args) <= 1 {
-		printUsage()
+		printHelp()
 		return
 	}
 
 	switch os.Args[1] {
+	case "version", "-v", "--version":
+		printVersion()
 	case "init":
 		initFlags := flag.NewFlagSet("init", flag.ExitOnError)
 		force := initFlags.Bool("force", false, "overwrite existing server config")
@@ -39,10 +42,10 @@ func main() {
 			log.Fatalf("stop server: %v", err)
 		}
 	case "help", "-h", "--help":
-		printUsage()
+		printHelp()
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n", os.Args[1])
-		printUsage()
+		printHelp()
 		os.Exit(2)
 	}
 }
@@ -76,8 +79,8 @@ func runServer() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("ndropd listening on :%s  max_size=%dMB  ttl=%s  allow_any_api_key=%t  allowed_api_keys=%d",
-			cfg.Port, cfg.MaxSizeMB, cfg.TTL, cfg.AllowAnyAPIKey, len(cfg.AllowedAPIKeys))
+		log.Printf("ndropd %s listening on :%s  max_size=%dMB  ttl=%s  allow_any_api_key=%t  allowed_api_keys=%d",
+			version.Version, cfg.Port, cfg.MaxSizeMB, cfg.TTL, cfg.AllowAnyAPIKey, len(cfg.AllowedAPIKeys))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}
@@ -96,13 +99,41 @@ func runServer() {
 	log.Println("stopped")
 }
 
-func printUsage() {
-	fmt.Fprintf(os.Stdout, `Usage:
+func printVersion() {
+	fmt.Fprintf(os.Stdout, "ndropd %s\n", version.Version)
+}
+
+func printHelp() {
+	fmt.Fprintf(os.Stdout, `ndropd %s
+
+Self-hosted ndrop HTTP server for encrypted text and file drops.
+
+The server stores encrypted payloads in memory, keyed by a bucket derived
+from the client API key. Use HTTPS or a reverse proxy when exposing ndropd
+over a network.
+
+Usage:
   ndropd start   # run the server in foreground
   ndropd stop    # stop the running server if started with start
   ndropd init    # create ~/.config/ndrop/ndropd.toml
+  ndropd version # show version
   ndropd help    # show this help message
-`)
+
+Config file:
+  %s
+
+Environment overrides:
+  PORT
+  MAX_SIZE_MB
+  TTL_HOURS
+  ALLOW_ANY_API_KEY
+  ALLOWED_API_KEYS
+
+Example:
+  ALLOW_ANY_API_KEY=false ALLOWED_API_KEYS=laptop-key,phone-key ndropd start
+
+For long-running Linux deployments, see deploy/systemd/ndropd.service.
+`, version.Version, config.DefaultServerConfigPath())
 }
 
 func stopServer() error {

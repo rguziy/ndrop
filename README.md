@@ -242,6 +242,17 @@ Environment=ALLOWED_API_KEYS=laptop-key,phone-key
 
 ## Build
 
+The canonical project version is defined in `internal/version/version.go`.
+Plain `go build`, Docker builds, and Make-based release builds use that value.
+Update it there before cutting a new release.
+
+Both binaries can print their version:
+
+```bash
+ndrop --version
+ndropd --version
+```
+
 ### Local Go build
 
 ```bash

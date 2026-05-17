@@ -1,7 +1,8 @@
-VERSION ?= 1.0.0
+VERSION ?= $(shell sed -n 's/^var Version = "\(.*\)"/\1/p' internal/version/version.go)
 BUILD_DIR := build
 GO ?= go
 ZIP ?= zip -j
+LDFLAGS := -s -w -X github.com/rguziy/ndrop/internal/version.Version=$(VERSION)
 
 # Client and server packages/binary names
 CLIENT_PKG := ./cmd/ndrop
@@ -30,6 +31,7 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 help:
+	@printf "Version: %s\n\n" "$(VERSION)"
 	@printf "Usage:\n"
 	@printf "  make            # alias for release\n"
 	@printf "  make release    # build all targets\n"
@@ -85,9 +87,11 @@ darwin-arm64: build
 
 # build target builds both client and server, then zips them together
 build:
-	@mkdir -p $(BUILD_DIR)
+	@rm -rf $(BUILD_DIR)/$(TARGET)
+	@mkdir -p $(BUILD_DIR)/$(TARGET)
+	@rm -f $(BUILD_DIR)/$(CLIENT_BIN)-$(TARGET)-$(VERSION).zip
 	@printf "Building client and server for %s/%s%s\n" "$(GOOS)" "$(GOARCH)" "$(if $(GOARM), GOARM=$(GOARM),)"
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) $(GO) build -o $(BUILD_DIR)/$(CLIENT_BIN)$(EXT) $(CLIENT_PKG)
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) $(GO) build -o $(BUILD_DIR)/$(SERVER_BIN)$(EXT) $(SERVER_PKG)
-	@cd $(BUILD_DIR) && $(ZIP) $(CLIENT_BIN)-$(TARGET)-$(VERSION).zip $(CLIENT_BIN)$(EXT) $(SERVER_BIN)$(EXT)
-	@rm -f $(BUILD_DIR)/$(CLIENT_BIN)$(EXT) $(BUILD_DIR)/$(SERVER_BIN)$(EXT)
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) $(GO) build -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(TARGET)/$(CLIENT_BIN)$(EXT) $(CLIENT_PKG)
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) $(GO) build -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(TARGET)/$(SERVER_BIN)$(EXT) $(SERVER_PKG)
+	@cd $(BUILD_DIR)/$(TARGET) && $(ZIP) ../$(CLIENT_BIN)-$(TARGET)-$(VERSION).zip $(CLIENT_BIN)$(EXT) $(SERVER_BIN)$(EXT)
+	@rm -rf $(BUILD_DIR)/$(TARGET)

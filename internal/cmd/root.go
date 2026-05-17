@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/rguziy/ndrop/internal/config"
+	"github.com/rguziy/ndrop/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -32,9 +33,12 @@ func NewRootCmd() *cobra.Command {
 	globals := &globalFlags{}
 
 	root := &cobra.Command{
-		Use:   "ndrop",
-		Short: "Transfer text and files between devices",
-		Long: `ndrop — a cross-platform data transfer utility.
+		Use:     "ndrop",
+		Short:   "Transfer text and files between devices",
+		Version: version.Version,
+		Long: fmt.Sprintf(`ndrop %s
+
+ndrop — a cross-platform data transfer utility.
 
 Content is end-to-end encrypted: the server only stores ciphertext
 derived from your API key.
@@ -53,13 +57,14 @@ Pull supports:
   ndrop pull --stdout           raw bytes to stdout
 
 Configuration: ~/.config/ndrop/ndrop.toml
-Environment:   NDROP_URL, NDROP_API_KEY`,
+Environment:   NDROP_URL, NDROP_API_KEY`, version.Version),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,
 		},
 	}
+	root.SetVersionTemplate("ndrop {{.Version}}\n")
 
 	// Global persistent flags available to every subcommand.
 	root.PersistentFlags().StringVar(
