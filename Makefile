@@ -21,7 +21,7 @@ TARGETS := \
 
 .DEFAULT_GOAL := help
 
-.PHONY: all clean release help $(TARGETS) build
+.PHONY: all clean release help $(TARGETS)
 
 all: release
 
@@ -40,53 +40,7 @@ help:
 	@printf "Targets:\n"
 	@printf "  %s\n" "$(TARGETS)"
 
-linux-amd64: GOOS=linux
-linux-amd64: GOARCH=amd64
-linux-amd64: EXT=
-linux-amd64: TARGET=linux-amd64
-linux-amd64: build
-
-linux-armv5: GOOS=linux
-linux-armv5: GOARCH=arm
-linux-armv5: GOARM=5
-linux-armv5: EXT=
-linux-armv5: TARGET=linux-armv5
-linux-armv5: build
-
-linux-armv6: GOOS=linux
-linux-armv6: GOARCH=arm
-linux-armv6: GOARM=6
-linux-armv6: EXT=
-linux-armv6: TARGET=linux-armv6
-linux-armv6: build
-
-linux-armv7: GOOS=linux
-linux-armv7: GOARCH=arm
-linux-armv7: GOARM=7
-linux-armv7: EXT=
-linux-armv7: TARGET=linux-armv7
-linux-armv7: build
-
-windows-amd64: GOOS=windows
-windows-amd64: GOARCH=amd64
-windows-amd64: EXT=.exe
-windows-amd64: TARGET=windows-amd64
-windows-amd64: build
-
-darwin-amd64: GOOS=darwin
-darwin-amd64: GOARCH=amd64
-darwin-amd64: EXT=
-darwin-amd64: TARGET=darwin-amd64
-darwin-amd64: build
-
-darwin-arm64: GOOS=darwin
-darwin-arm64: GOARCH=arm64
-darwin-arm64: EXT=
-darwin-arm64: TARGET=darwin-arm64
-darwin-arm64: build
-
-# build target builds both client and server, then zips them together
-build:
+define BUILD_TARGET
 	@rm -rf $(BUILD_DIR)/$(TARGET)
 	@mkdir -p $(BUILD_DIR)/$(TARGET)
 	@rm -f $(BUILD_DIR)/$(CLIENT_BIN)-$(TARGET)-$(VERSION).zip
@@ -95,3 +49,56 @@ build:
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) $(GO) build -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(TARGET)/$(SERVER_BIN)$(EXT) $(SERVER_PKG)
 	@cd $(BUILD_DIR)/$(TARGET) && $(ZIP) ../$(CLIENT_BIN)-$(TARGET)-$(VERSION).zip $(CLIENT_BIN)$(EXT) $(SERVER_BIN)$(EXT)
 	@rm -rf $(BUILD_DIR)/$(TARGET)
+endef
+
+linux-amd64: GOOS=linux
+linux-amd64: GOARCH=amd64
+linux-amd64: EXT=
+linux-amd64: TARGET=linux-amd64
+linux-amd64:
+	$(BUILD_TARGET)
+
+linux-armv5: GOOS=linux
+linux-armv5: GOARCH=arm
+linux-armv5: GOARM=5
+linux-armv5: EXT=
+linux-armv5: TARGET=linux-armv5
+linux-armv5:
+	$(BUILD_TARGET)
+
+linux-armv6: GOOS=linux
+linux-armv6: GOARCH=arm
+linux-armv6: GOARM=6
+linux-armv6: EXT=
+linux-armv6: TARGET=linux-armv6
+linux-armv6:
+	$(BUILD_TARGET)
+
+linux-armv7: GOOS=linux
+linux-armv7: GOARCH=arm
+linux-armv7: GOARM=7
+linux-armv7: EXT=
+linux-armv7: TARGET=linux-armv7
+linux-armv7:
+	$(BUILD_TARGET)
+
+windows-amd64: GOOS=windows
+windows-amd64: GOARCH=amd64
+windows-amd64: EXT=.exe
+windows-amd64: TARGET=windows-amd64
+windows-amd64:
+	$(BUILD_TARGET)
+
+darwin-amd64: GOOS=darwin
+darwin-amd64: GOARCH=amd64
+darwin-amd64: EXT=
+darwin-amd64: TARGET=darwin-amd64
+darwin-amd64:
+	$(BUILD_TARGET)
+
+darwin-arm64: GOOS=darwin
+darwin-arm64: GOARCH=arm64
+darwin-arm64: EXT=
+darwin-arm64: TARGET=darwin-arm64
+darwin-arm64:
+	$(BUILD_TARGET)
