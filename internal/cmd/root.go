@@ -34,7 +34,7 @@ func NewRootCmd() *cobra.Command {
 
 	root := &cobra.Command{
 		Use:     "ndrop",
-		Short:   "Transfer text and files between devices",
+		Short:   "Transfer text, files, and folders between devices",
 		Version: version.Version,
 		Long: fmt.Sprintf(`ndrop %s
 
@@ -46,14 +46,15 @@ derived from your API key.
 Push supports:
   ndrop push "text"             inline text
   ndrop push ./file             file contents
+  ndrop push ./folder           folder contents
   echo "text" | ndrop push      stdin
   ndrop push --clipboard        system clipboard text
   ndrop push -c "command"       command stdout
 
 Pull supports:
-  ndrop pull                    text to stdout; files to default save dir
+  ndrop pull                    text to stdout; files/folders to default save dir
   ndrop pull --clipboard        text to system clipboard
-  ndrop pull --save <dir>       save file output to a directory
+  ndrop pull --save <dir>       save file/folder output to a directory
   ndrop pull --stdout           raw bytes to stdout
 
 Configuration: ~/.config/ndrop/ndrop.toml

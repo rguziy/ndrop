@@ -1,20 +1,20 @@
 # Technical Requirements Document: ndrop
 
-**Version:** 0.1.1  
+**Version:** 1.1.0  
 **Status:** Draft  
-**Date:** 2026-05-16
+**Date:** 2026-06-10
 
 ---
 
 ## 1. Overview
 
-`ndrop` is a cross-platform CLI utility for transferring text and files between devices via a self-hosted HTTP server. It is designed to provide a network-transparent solution that works across firewalls, networks, and operating systems, whether the server runs locally or on a remote VPS.
+`ndrop` is a cross-platform CLI utility for transferring text, files, and folders between devices via a self-hosted HTTP server. It is designed to provide a network-transparent solution that works across firewalls, networks, and operating systems, whether the server runs locally or on a remote VPS.
 
 ---
 
 ## 2. Goals
 
-- Transfer text and files between arbitrary devices over HTTPS
+- Transfer text, files, and folders between arbitrary devices over HTTPS
 - No dependency on cloud providers (Dropbox, Google Drive, etc.)
 - Self-hosted server deployable via Docker on local machines, home labs, or VPS instances
 - Simple API-key-based isolation: one API key = one shared buffer
@@ -38,6 +38,7 @@
   CLI client  -- HTTPS -->  in-memory store  -- HTTPS -->  CLI client
   push text                 bucket per API key             pull text
   push file                 TTL-based expiry               pull file → save
+  push folder               encrypted zip blob             pull folder → extract
 ```
 
 ### 4.1 Server
@@ -108,8 +109,8 @@ Content-Type: application/json
 | Field    | Required | Description                                      |
 |----------|----------|--------------------------------------------------|
 | `device` | yes      | Human-readable source device name                |
-| `type`   | yes      | `text` or `file`                                 |
-| `name`   | no       | Original filename; required when `type = file`   |
+| `type`   | yes      | `text`, `file`, or `folder`                      |
+| `name`   | conditional | Original filename/folder name; required for `file` and `folder` |
 | `mime`   | yes      | MIME type of the original payload                |
 | `data`   | yes      | Base64-encoded AES-256-GCM ciphertext            |
 | `nonce`  | yes      | Base64-encoded 12-byte GCM nonce                 |
@@ -171,7 +172,9 @@ nonce_field = base64(nonce)
 - The server stores only encrypted payload data
 - The server stores only `bucket_id` as a map key, not the raw API key
 - A trusted server process receives the API key per request and can enforce an allowlist
-- Replay protection is not in scope for v0.1 (TTL provides partial mitigation)
+- Replay protection is not currently in scope (TTL provides partial mitigation)
+- Folder extraction rejects archive entries that would write outside the destination directory
+- Symlinks are not included in folder transfers
 
 ---
 
@@ -182,8 +185,8 @@ nonce_field = base64(nonce)
 ```go
 type Entry struct {
     Device    string
-    Type      string    // "text" | "file"
-    Name      string    // original filename, empty for text
+    Type      string    // "text" | "file" | "folder"
+    Name      string    // original filename/folder name, empty for text
     Mime      string
     Data      string    // base64 ciphertext
     Nonce     string    // base64 nonce
@@ -225,6 +228,9 @@ ndrop push -c "docker ps"
 
 # File
 ndrop push ./archive.tar.gz
+
+# Folder
+ndrop push ./project-notes
 ```
 
 ### 8.2 Pull
@@ -236,7 +242,7 @@ ndrop pull
 # Write text to system clipboard
 ndrop pull --clipboard
 
-# Save file to directory
+# Save file or extract folder to directory
 ndrop pull --save ./downloads/
 
 # Write raw bytes to stdout (pipe-friendly)

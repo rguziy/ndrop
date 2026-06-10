@@ -184,8 +184,8 @@ func (h *Handler) handlePull(w http.ResponseWriter, r *http.Request) {
 
 // validatePushRequest returns an error if required fields are missing or invalid.
 func validatePushRequest(req pushRequest) error {
-	if req.Type != EntryTypeText && req.Type != EntryTypeFile {
-		return errorf("type must be 'text' or 'file', got %q", req.Type)
+	if req.Type != EntryTypeText && req.Type != EntryTypeFile && req.Type != EntryTypeFolder {
+		return errorf("type must be 'text', 'file', or 'folder', got %q", req.Type)
 	}
 	if req.Data == "" {
 		return errorf("data is required")
@@ -193,8 +193,8 @@ func validatePushRequest(req pushRequest) error {
 	if req.Nonce == "" {
 		return errorf("nonce is required")
 	}
-	if req.Type == EntryTypeFile && req.Name == "" {
-		return errorf("name is required for type 'file'")
+	if (req.Type == EntryTypeFile || req.Type == EntryTypeFolder) && req.Name == "" {
+		return errorf("name is required for type %q", req.Type)
 	}
 	return nil
 }

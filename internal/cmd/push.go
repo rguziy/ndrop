@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"archive/zip"
+	"bytes"
 	"fmt"
 	"io"
+	"io/fs"
 	"mime"
 	"os"
 	"os/exec"
@@ -19,7 +22,7 @@ func newPushCmd(globals *globalFlags) *cobra.Command {
 	var flagClipboard bool
 
 	cmd := &cobra.Command{
-		Use:   "push [text | file]",
+		Use:   "push [text | file | folder]",
 		Short: "Push content to the shared buffer",
 		Long: `Push content to the shared buffer.
 
@@ -30,7 +33,8 @@ Examples:
   ndrop push "some text"             # inline text
   ndrop push --clipboard              # push clipboard text
   ndrop push -c "docker ps"          # command output
-  ndrop push ./archive.tar.gz        # file`,
+  ndrop push ./archive.tar.gz        # file
+  ndrop push ./my-folder             # folder`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := loadConfig(globals)
 			if err != nil {
@@ -63,17 +67,26 @@ Examples:
 				entryType = client.EntryTypeText
 				mimeType = "text/plain"
 
-			// Argument: could be a file path or inline text
+			// Argument: could be a file path, folder path, or inline text
 			case len(args) == 1:
-				if info, statErr := os.Stat(args[0]); statErr == nil && !info.IsDir() {
-					// It's a file.
-					payload, err = os.ReadFile(args[0])
-					if err != nil {
-						return fmt.Errorf("read file: %w", err)
+				if info, statErr := os.Stat(args[0]); statErr == nil {
+					if info.IsDir() {
+						payload, err = zipFolder(args[0])
+						if err != nil {
+							return err
+						}
+						entryType = client.EntryTypeFolder
+						name = filepath.Base(filepath.Clean(args[0]))
+						mimeType = "application/zip"
+					} else {
+						payload, err = os.ReadFile(args[0])
+						if err != nil {
+							return fmt.Errorf("read file: %w", err)
+						}
+						entryType = client.EntryTypeFile
+						name = filepath.Base(args[0])
+						mimeType = detectMIME(args[0])
 					}
-					entryType = client.EntryTypeFile
-					name = filepath.Base(args[0])
-					mimeType = detectMIME(args[0])
 				} else {
 					// Treat as inline text.
 					payload = []byte(args[0])
@@ -123,6 +136,9 @@ Examples:
 
 			// Human-readable feedback.
 			switch entryType {
+			case client.EntryTypeFolder:
+				fmt.Fprintf(os.Stderr, "pushed folder %q (%s, %d bytes)\n",
+					name, mimeType, len(payload))
 			case client.EntryTypeFile:
 				fmt.Fprintf(os.Stderr, "pushed file %q (%s, %d bytes)\n",
 					name, mimeType, len(payload))
@@ -142,6 +158,84 @@ Examples:
 	cmd.Flags().BoolVar(&flagClipboard, "clipboard", false, "push text from the system clipboard")
 
 	return cmd
+}
+
+// zipFolder returns a zip archive containing the contents of root.
+func zipFolder(root string) ([]byte, error) {
+	root = filepath.Clean(root)
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	skippedSymlinks := 0
+
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if path == root {
+			return nil
+		}
+
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			skippedSymlinks++
+			fmt.Fprintf(os.Stderr, "warning: skipping symlink %q\n", path)
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
+
+		header, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return err
+		}
+		header.Name = rel
+		if d.IsDir() {
+			header.Name += "/"
+		} else {
+			header.Method = zip.Deflate
+		}
+
+		writer, err := zw.CreateHeader(header)
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+
+		_, copyErr := io.Copy(writer, file)
+		closeErr := file.Close()
+		if copyErr != nil {
+			return copyErr
+		}
+		return closeErr
+	})
+	if closeErr := zw.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return nil, fmt.Errorf("zip folder: %w", err)
+	}
+	if skippedSymlinks > 0 {
+		fmt.Fprintf(os.Stderr, "warning: skipped %d symlink(s); symlinks are not included in folder transfers\n", skippedSymlinks)
+	}
+
+	return buf.Bytes(), nil
 }
 
 // runCommand executes a shell command and returns its combined stdout.

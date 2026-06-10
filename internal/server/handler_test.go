@@ -117,6 +117,34 @@ func TestPushFileRequiresName(t *testing.T) {
 	}
 }
 
+func TestPushFolderRequiresName(t *testing.T) {
+	srv := newTestServer(t)
+	defer srv.Close()
+
+	body := validBody()
+	body["type"] = "folder"
+	body["name"] = ""
+	body["mime"] = "application/zip"
+	resp := pushPayload(t, srv, "api-key-a", body)
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 when folder has no name, got %d", resp.StatusCode)
+	}
+}
+
+func TestPushFolderOK(t *testing.T) {
+	srv := newTestServer(t)
+	defer srv.Close()
+
+	body := validBody()
+	body["type"] = "folder"
+	body["name"] = "bundle"
+	body["mime"] = "application/zip"
+	resp := pushPayload(t, srv, "api-key-a", body)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+}
+
 // --- pull tests ---
 
 func TestPullEmpty(t *testing.T) {

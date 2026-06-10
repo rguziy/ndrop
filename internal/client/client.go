@@ -16,8 +16,9 @@ const defaultTimeout = 30 * time.Second
 type EntryType string
 
 const (
-	EntryTypeText EntryType = "text"
-	EntryTypeFile EntryType = "file"
+	EntryTypeText   EntryType = "text"
+	EntryTypeFile   EntryType = "file"
+	EntryTypeFolder EntryType = "folder"
 )
 
 // PushRequest is the JSON body sent to POST /push.

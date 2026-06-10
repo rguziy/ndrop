@@ -1,6 +1,6 @@
 # ndrop
 
-🚀 `ndrop` is a self-hosted data transfer utility for text and files, built in Go.
+🚀 `ndrop` is a self-hosted data transfer utility for text, files, and folders, built in Go.
 It uses a self-hosted HTTP server accessible locally or remotely, with end-to-end encryption so the server stores only ciphertext.
 
 Similar in spirit to AirDrop-style sharing, but uses HTTP and E2E encryption instead of OS-specific peer-to-peer discovery.
@@ -9,13 +9,13 @@ Similar in spirit to AirDrop-style sharing, but uses HTTP and E2E encryption ins
 
 - Run `ndropd` on your laptop for local quick transfers.
 - Deploy `ndropd` on a VPS or remote machine for internet-based drops.
-- Use `ndrop` from any network-capable client to push/pull text and files over HTTPS.
+- Use `ndrop` from any network-capable client to push/pull text, files, and folders over HTTPS.
 
 ## Features
 
 - 🔐 End-to-end encrypted content transfer
-- 📤 Push text, files, or clipboard contents from the CLI
-- 📥 Pull shared content to stdout, system clipboard, or saved file
+- 📤 Push text, files, folders, or clipboard contents from the CLI
+- 📥 Pull shared content to stdout, system clipboard, saved file, or extracted folder
 - 🧩 API-key-based isolation per shared buffer
 - ⚙️ Configurable with TOML, CLI flags, and environment variables
 - 🖥️ `ndropd` CLI with `init`, `start`, `stop`, and `help`
@@ -70,6 +70,9 @@ allowed_api_keys = []
 # Push a file
 ./ndrop push ./archive.tar.gz
 
+# Push a folder
+./ndrop push ./my-folder
+
 # Push clipboard contents
 ./ndrop push --clipboard
 
@@ -82,7 +85,7 @@ allowed_api_keys = []
 # Pull text to system clipboard
 ./ndrop pull --clipboard
 
-# Pull a file to a directory
+# Pull a file or folder to a directory
 ./ndrop pull --save ./downloads/
 
 # Pull raw bytes to stdout
@@ -94,7 +97,7 @@ allowed_api_keys = []
 ### Client commands
 
 - `ndrop init` — create default client config
-- `ndrop push [text|file]` — push text or a file
+- `ndrop push [text|file|folder]` — push text, a file, or a folder
 - `ndrop pull` — pull the latest entry
 
 ### Push options
@@ -105,7 +108,7 @@ allowed_api_keys = []
 ### Pull options
 
 - `--clipboard` — write text to the system clipboard
-- `--save <dir>` — save a file to a directory
+- `--save <dir>` — save a file or extract a folder to a directory
 - `--stdout` — write raw bytes to stdout
 
 ### Server commands
@@ -122,12 +125,12 @@ allowed_api_keys = []
 - It derives a stable `bucket_id`, which selects the shared buffer on the server.
 - It derives an AES-256-GCM encryption key, which encrypts and decrypts the payload.
 
-When you run `ndrop push`, the client encrypts the text or file before uploading it. The server stores only:
+When you run `ndrop push`, the client encrypts the text, file, or zipped folder before uploading it. The server stores only:
 
 - the derived `bucket_id`
 - encrypted `data`
 - the `nonce` needed to decrypt that encrypted payload
-- metadata such as device name, MIME type, and filename
+- metadata such as device name, MIME type, and payload name
 
 The `nonce` is a random 12-byte value generated for every push. It is not secret, but it must be unique for each encryption with the same API key. The pull client receives `data` and `nonce`, then decrypts locally using the same API key.
 
@@ -296,9 +299,9 @@ Supported targets:
 
 Each target builds both `ndrop` and `ndropd`, then creates a zip package like:
 
-- `build/ndrop-linux-amd64-1.0.0.zip`
-- `build/ndrop-windows-amd64-1.0.0.zip`
-- `build/ndrop-darwin-arm64-1.0.0.zip`
+- `build/ndrop-linux-amd64-1.1.0.zip`
+- `build/ndrop-windows-amd64-1.1.0.zip`
+- `build/ndrop-darwin-arm64-1.1.0.zip`
 
 ## License
 

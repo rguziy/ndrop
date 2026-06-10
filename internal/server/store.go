@@ -5,12 +5,13 @@ import (
 	"time"
 )
 
-// EntryType distinguishes text payloads from file payloads.
+// EntryType distinguishes text, file, and folder payloads.
 type EntryType string
 
 const (
-	EntryTypeText EntryType = "text"
-	EntryTypeFile EntryType = "file"
+	EntryTypeText   EntryType = "text"
+	EntryTypeFile   EntryType = "file"
+	EntryTypeFolder EntryType = "folder"
 )
 
 // Entry is the value stored per bucket. All content fields come directly
@@ -18,7 +19,7 @@ const (
 type Entry struct {
 	Device    string    `json:"device"`
 	Type      EntryType `json:"type"`
-	Name      string    `json:"name"`  // original filename; empty for text
+	Name      string    `json:"name"` // original filename; empty for text
 	Mime      string    `json:"mime"`
 	Data      string    `json:"data"`  // base64(AES-256-GCM(payload))
 	Nonce     string    `json:"nonce"` // base64(12-byte GCM nonce)
