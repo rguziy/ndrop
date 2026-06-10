@@ -118,6 +118,19 @@ allowed_api_keys = []
 - `ndropd stop` — stop the running server
 - `ndropd help` — show help
 
+### Web UI
+
+`ndropd` serves an embedded web UI at `/`.
+
+Open the server URL in a browser, enter the same API key used by the CLI, and use the page to:
+
+- pull and decrypt the latest text, file, or folder transfer locally in the browser
+- copy pulled text to the system clipboard
+- download pulled files and folders; folders are downloaded as zip files
+- push text or a file
+
+The web UI uses the browser WebCrypto API for AES-GCM encryption and decryption, so the server still stores only ciphertext. WebCrypto requires a secure browser context: use `https://` for remote deployments or `http://localhost` for local testing.
+
 ## How encryption works
 
 `ndrop` uses the configured API key for two separate purposes:

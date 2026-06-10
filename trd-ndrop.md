@@ -47,6 +47,7 @@
 - In-memory key-value store: `map[bucket_id] → Entry`
 - One entry per bucket (last-write-wins)
 - Background goroutine purges expired entries
+- Embedded static web UI served from `/`
 - No database, no external dependencies
 
 ### 4.2 Client
@@ -56,7 +57,18 @@
 - Config values overridable via CLI flags and environment variables
 - Includes `init`, `push`, and `pull` commands
 
-### 4.3 Isolation Model
+### 4.3 Web UI
+
+- Embedded static HTML/CSS/JavaScript served by `ndropd`
+- Uses the same `POST /push` and `GET /pull` HTTP API as the CLI
+- Uses the browser WebCrypto API to encrypt and decrypt payloads locally
+- Authenticates API calls with `Authorization: Bearer <api-key>`
+- Supports pulling text, files, and folders; folders are downloaded as zip files
+- Supports pushing text and files
+- Does not support folder upload in the initial web UI
+- Requires a secure browser context for WebCrypto: HTTPS for remote deployments or localhost for local testing
+
+### 4.4 Isolation Model
 
 Each API key maps to an isolated buffer on the server:
 
@@ -284,6 +296,14 @@ If `ndropd` is run with no arguments, it prints help.
 --server   server URL (overrides config and NDROP_URL)
 --api-key  API key (overrides config and NDROP_API_KEY)
 ```
+
+### 8.6 Web UI
+
+```bash
+ndropd start
+```
+
+Open the server URL in a browser. The web UI uses the API key as its password and performs encryption/decryption in the browser with WebCrypto. Pulling a `folder` entry downloads the encrypted zip payload as a zip file after local decryption.
 
 ---
 

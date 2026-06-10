@@ -1,3 +1,13 @@
+# v1.2.0 - Web UI
+
+## Highlights
+
+- Added an embedded `ndropd` web UI served at `/`
+- Web UI uses API key authentication and browser WebCrypto for local encryption/decryption
+- Web UI can pull text, files, and folders; folders download as zip files
+- Web UI can push text and files
+- Native mobile apps are intentionally out of scope for now
+
 # v1.1.0 - Folder Transfer
 
 Adds encrypted folder transfer support while keeping the server storage model simple: folders are zipped by the client, encrypted, pushed as a `folder` entry, then safely extracted by the receiving client.

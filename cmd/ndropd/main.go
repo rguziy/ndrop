@@ -106,7 +106,7 @@ func printVersion() {
 func printHelp() {
 	fmt.Fprintf(os.Stdout, `ndropd %s
 
-Self-hosted ndrop HTTP server for encrypted text and file drops.
+Self-hosted ndrop HTTP server for encrypted text, file, and folder drops.
 
 The server stores encrypted payloads in memory, keyed by a bucket derived
 from the client API key. Use HTTPS or a reverse proxy when exposing ndropd

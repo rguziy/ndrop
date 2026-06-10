@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -257,5 +258,23 @@ func TestRestrictedAPIKeyRejectsUnknownKey(t *testing.T) {
 	resp := pushPayload(t, srv, "unknown-key", validBody())
 	if resp.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d", resp.StatusCode)
+	}
+}
+
+func TestWebUIIndex(t *testing.T) {
+	srv := newTestServer(t)
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/")
+	if err != nil {
+		t.Fatalf("get web ui: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	if ct := resp.Header.Get("Content-Type"); !strings.Contains(ct, "text/html") {
+		t.Fatalf("expected html content type, got %q", ct)
 	}
 }

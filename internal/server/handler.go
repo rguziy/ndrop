@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/rguziy/ndrop/internal/crypto"
+	"github.com/rguziy/ndrop/internal/webui"
 )
 
 // pushRequest is the JSON body accepted by POST /push.
@@ -64,6 +65,7 @@ func NewHandler(store *Store, maxBytes int64, auth AuthConfig) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/push", h.handlePush)
 	mux.HandleFunc("/pull", h.handlePull)
+	mux.Handle("/", webui.Handler())
 
 	return mux
 }
