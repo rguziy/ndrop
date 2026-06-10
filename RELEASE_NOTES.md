@@ -1,3 +1,16 @@
+# v1.2.1 - Modern UI & Dropzone UX
+
+## Highlights
+
+- **Complete Web UI Redesign**: Switched from a basic dark theme to a premium light cyberpunk/minimalist style featuring smooth gradients, glassmorphic panel blending (`backdrop-filter`), and refined typography.
+- **Interactive Drag & Drop**: Implemented a fully functional dropzone for files and folders, eliminating the raw native browser file picker in favor of a modern drag-and-drop container.
+- **On-Page File Verification**: Fixed a core JS array-buffer parsing issue. Selected file names and sizes are now accurately rendered right on the screen inside the dropzone layout, rather than hidden in browser tooltips.
+- **Enhanced UX States**:
+  - Added a dedicated "Cancel" action directly on the page to unstage a selected file before pushing.
+  - Implemented dynamic field resetting to automatically wipe the active inputs and memory buffers upon successful text or file pushes.
+  - Replaced text-based password toggles with dynamic, context-aware SVG icons (`eye` / `eye-off`) that match the unified icon sprite system.
+- **Responsive Layout**: Re-engineered the actions grid to feature an adaptive split (`1fr 54px 54px`) on desktop, seamlessly collapsing into full-width mobile stacks for single-hand use.
+
 # v1.2.0 - Web UI
 
 ## Highlights
