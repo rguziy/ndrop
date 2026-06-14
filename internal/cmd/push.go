@@ -122,7 +122,7 @@ Examples:
 
 			hostname, _ := os.Hostname()
 
-			cl := client.New(cfg.Server.URL, cfg.Server.APIKey)
+			cl := client.New(cfg.Server.URL, cfg.Server.APIKey, cfg.TimeoutSeconds)
 			if err := cl.Push(client.PushRequest{
 				Device: hostname,
 				Type:   entryType,

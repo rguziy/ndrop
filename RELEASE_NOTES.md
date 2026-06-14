@@ -1,3 +1,14 @@
+# v1.2.3 - Configurable Timeouts & Protocol Verification
+
+This release introduces granular client-side timeout controls and dynamic runtime version verification to prevent cross-version synchronization edge-cases and improve user diagnostics.
+
+## Highlights
+
+- **Configurable Client Timeouts**: Added a new `timeout_seconds` parameter under the `[server]` section of `ndrop.toml`. This allows users to fine-tune client network constraints based on their infrastructure speeds.
+- **Precedence Hierarchy Overrides**: Added a global `--timeout` CLI flag and `NDROP_TIMEOUT_SECONDS` environment variable block. This gives transient operations or CI tasks immediate, highest-priority control over network deadlines.
+- **Automated Version Mismatch Guard**: Implemented a global server-side HTTP middleware that injects the `X-Server-Version` header into every request. The client automatically reads this on `push` and `pull`, printing an explicit terminal warning to `stderr` if versions diverge.
+- **Updated Initialization Engine**: Modified the `./ndrop init` configuration builder to automatically seed new workspaces with a clean, documented `timeout_seconds = 120` key-value property block.
+
 # v1.2.2 - Connection Stability & Large Files Fix
 
 This release addresses critical connection drops during large payload transfers on resource-constrained servers. It fixes unexpected `context deadline exceeded` errors when handling multi-megabyte files.

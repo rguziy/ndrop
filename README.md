@@ -34,6 +34,7 @@ This creates `~/.config/ndrop/ndrop.toml` with:
 [server]
 url = "http://localhost:8080"
 api_key = "your-api-key"
+timeout_seconds = 120
 
 [pull]
 default_save_dir = "~/Downloads"
@@ -159,6 +160,9 @@ File: `~/.config/ndrop/ndrop.toml`
 [server]
 url = "http://localhost:8080"
 api_key = "my-secret-api-key"
+
+# Client-side HTTP request timeout in seconds (0 uses default 120s)
+timeout_seconds = 120
 
 [pull]
 default_save_dir = "~/Downloads"
@@ -349,6 +353,6 @@ Each target builds both `ndrop` and `ndropd`, then creates a zip package like:
 - `build/ndrop-windows-amd64-1.1.0.zip`
 - `build/ndrop-darwin-arm64-1.1.0.zip`
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License. See `LICENSE`.
+MIT © 2026 [Ruslan Huzii](https://github.com/rguziy)

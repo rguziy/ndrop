@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	"github.com/rguziy/ndrop/internal/version"
 )
 
 const defaultTimeout = 120 * time.Second
@@ -49,11 +52,32 @@ type Client struct {
 }
 
 // New creates a Client for the given server URL and API key.
-func New(baseURL, apiKey string) *Client {
+func New(baseURL, apiKey string, timeoutSeconds int) *Client {
+	var timeout time.Duration
+	if timeoutSeconds <= 0 {
+		timeout = defaultTimeout // 120 * time.Second
+	} else {
+		timeout = time.Duration(timeoutSeconds) * time.Second
+	}
+
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
 		apiKey:  apiKey,
-		http:    &http.Client{Timeout: defaultTimeout},
+		http:    &http.Client{Timeout: timeout},
+	}
+}
+
+// Version check helper
+func (c *Client) checkVersionHeader(resp *http.Response) {
+	srvVer := resp.Header.Get("X-Server-Version")
+	if srvVer == "" {
+		return // server does not expose its version
+	}
+	clientVer := version.Version
+	if srvVer != clientVer {
+		fmt.Fprintf(os.Stderr,
+			"⚠️  Warning: server version %q differs from client version %q\n",
+			srvVer, clientVer)
 	}
 }
 
@@ -76,6 +100,8 @@ func (c *Client) Push(req PushRequest) error {
 		return fmt.Errorf("push: %w", err)
 	}
 	defer resp.Body.Close()
+
+	c.checkVersionHeader(resp)
 
 	switch resp.StatusCode {
 	case http.StatusOK:
@@ -104,6 +130,8 @@ func (c *Client) Pull() (*PullResponse, error) {
 		return nil, fmt.Errorf("pull: %w", err)
 	}
 	defer resp.Body.Close()
+
+	c.checkVersionHeader(resp)
 
 	switch resp.StatusCode {
 	case http.StatusNoContent:

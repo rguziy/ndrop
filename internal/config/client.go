@@ -4,14 +4,16 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/BurntSushi/toml"
 )
 
 // ClientConfig holds all client-side configuration.
 type ClientConfig struct {
-	Server ServerSection `toml:"server"`
-	Pull   PullSection   `toml:"pull"`
+	Server         ServerSection `toml:"server"`
+	Pull           PullSection   `toml:"pull"`
+	TimeoutSeconds int           `toml:"timeout_seconds"`
 }
 
 type ServerSection struct {
@@ -43,7 +45,7 @@ func DefaultConfigPath() string {
 
 // LoadClient loads config from path, applies env overrides, then flag overrides.
 // flagURL and flagAPIKey are non-empty only when explicitly set via CLI flag.
-func LoadClient(path, flagURL, flagAPIKey string) (ClientConfig, error) {
+func LoadClient(path, flagURL, flagAPIKey string, flagTimeout int) (ClientConfig, error) {
 	cfg := DefaultClientConfig()
 
 	// Load from file if it exists.
@@ -61,12 +63,21 @@ func LoadClient(path, flagURL, flagAPIKey string) (ClientConfig, error) {
 		cfg.Server.APIKey = v
 	}
 
+	if v := os.Getenv("NDROP_TIMEOUT_SECONDS"); v != "" {
+		if secs, err := strconv.Atoi(v); err == nil {
+			cfg.TimeoutSeconds = secs
+		}
+	}
+
 	// CLI flag overrides (highest priority).
 	if flagURL != "" {
 		cfg.Server.URL = flagURL
 	}
 	if flagAPIKey != "" {
 		cfg.Server.APIKey = flagAPIKey
+	}
+	if flagTimeout > 0 {
+		cfg.TimeoutSeconds = flagTimeout
 	}
 
 	return cfg, nil

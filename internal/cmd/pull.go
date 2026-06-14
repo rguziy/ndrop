@@ -50,7 +50,7 @@ Examples:
 				return fmt.Errorf("--clipboard, --save, and --stdout are mutually exclusive")
 			}
 
-			cl := client.New(cfg.Server.URL, cfg.Server.APIKey)
+			cl := client.New(cfg.Server.URL, cfg.Server.APIKey, cfg.TimeoutSeconds)
 			resp, err := cl.Pull()
 			if err != nil {
 				return err

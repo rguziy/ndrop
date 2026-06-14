@@ -11,14 +11,15 @@ import (
 
 // globalFlags are flags shared across all subcommands.
 type globalFlags struct {
-	ConfigPath string
-	ServerURL  string
-	APIKey     string
+	ConfigPath     string
+	ServerURL      string
+	APIKey         string
+	TimeoutSeconds int
 }
 
 // loadConfig is a helper used by every subcommand to build a validated config.
 func loadConfig(g *globalFlags) (config.ClientConfig, error) {
-	cfg, err := config.LoadClient(g.ConfigPath, g.ServerURL, g.APIKey)
+	cfg, err := config.LoadClient(g.ConfigPath, g.ServerURL, g.APIKey, g.TimeoutSeconds)
 	if err != nil {
 		return cfg, fmt.Errorf("load config: %w", err)
 	}
@@ -58,7 +59,7 @@ Pull supports:
   ndrop pull --stdout           raw bytes to stdout
 
 Configuration: ~/.config/ndrop/ndrop.toml
-Environment:   NDROP_URL, NDROP_API_KEY`, version.Version),
+Environment:   NDROP_URL, NDROP_API_KEY, NDROP_TIMEOUT_SECONDS`, version.Version),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		CompletionOptions: cobra.CompletionOptions{
@@ -80,6 +81,11 @@ Environment:   NDROP_URL, NDROP_API_KEY`, version.Version),
 	root.PersistentFlags().StringVar(
 		&globals.APIKey, "api-key", "",
 		"API key (overrides config and NDROP_API_KEY)",
+	)
+	// Added global flag for explicit on-the-fly timeout adjustments
+	root.PersistentFlags().IntVar(
+		&globals.TimeoutSeconds, "timeout", 0,
+		"client timeout in seconds (overrides config, env, and default 120s)",
 	)
 
 	root.AddCommand(

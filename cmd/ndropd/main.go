@@ -67,14 +67,19 @@ func runServer() {
 		AllowedAPIKeys: cfg.AllowedAPIKeys,
 	})
 
-    srv := &http.Server{
-        Addr:              ":" + cfg.Port,
-        Handler:           handler,
-        ReadHeaderTimeout: 30 * time.Second,
-        ReadTimeout:       0,
-        WriteTimeout:      0,
-        IdleTimeout:       120 * time.Second,
-    }
+	versionMiddleware := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Server-Version", version.Version)
+		handler.ServeHTTP(w, r)
+	})
+
+	srv := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           versionMiddleware,
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       0,
+		WriteTimeout:      0,
+		IdleTimeout:       120 * time.Second,
+	}
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
