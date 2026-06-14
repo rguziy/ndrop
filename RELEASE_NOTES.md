@@ -1,3 +1,14 @@
+# v1.2.2 - Connection Stability & Large Files Fix
+
+This release addresses critical connection drops during large payload transfers on resource-constrained servers. It fixes unexpected `context deadline exceeded` errors when handling multi-megabyte files.
+
+## Highlights
+
+- **Infinite Server Transfer Windows**: Removed rigid 30-second execution limits on the server by setting `ReadTimeout: 0` and `WriteTimeout: 0`. The server can now spend as much time as needed processing large Base64 encodings and slow disk/SWAP operations without dropping the socket.
+- **Slowloris Attack Protection**: Implemented a dedicated `ReadHeaderTimeout: 30 * time.Second` on the HTTP server. This keeps the server secure against slow-header flooding attacks while still allowing unlimited time for the actual file streaming payload body.
+- **Extended Client Body Buffering**: Increased the client's internal `defaultTimeout` from 30 seconds to 120 seconds. This allows the receiving client to patiently wait for the response body stream to finish, preventing premature connection termination on slow or heavily loaded remote VPS servers.
+- **Protocol & Payload Alignment**: Synced client-server communication channels to resolve subtle cross-version schema mismatches during heavy chunked transfers.
+
 # v1.2.1 - Modern UI & Dropzone UX
 
 ## Highlights

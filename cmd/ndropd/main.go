@@ -67,13 +67,14 @@ func runServer() {
 		AllowedAPIKeys: cfg.AllowedAPIKeys,
 	})
 
-	srv := &http.Server{
-		Addr:         ":" + cfg.Port,
-		Handler:      handler,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  120 * time.Second,
-	}
+    srv := &http.Server{
+        Addr:              ":" + cfg.Port,
+        Handler:           handler,
+        ReadHeaderTimeout: 30 * time.Second,
+        ReadTimeout:       0,
+        WriteTimeout:      0,
+        IdleTimeout:       120 * time.Second,
+    }
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)

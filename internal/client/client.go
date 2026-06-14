@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const defaultTimeout = 30 * time.Second
+const defaultTimeout = 120 * time.Second
 
 // EntryType mirrors the server-side type.
 type EntryType string

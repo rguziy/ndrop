@@ -198,6 +198,39 @@ Server config can be overridden with:
 - `ALLOW_ANY_API_KEY`
 - `ALLOWED_API_KEYS`
 
+## Production Deployment & Reverse Proxy (Nginx)
+
+When exposing `ndropd` to the internet, it is strongly recommended to run it behind a reverse proxy like Nginx with SSL termination.
+
+Because `ndrop` processes large files via memory/Base64, streaming raw data instantly without proxy buffering is critical to prevent timeouts and connection drops.
+
+### Recommended Nginx Configuration
+
+Add the following configuration inside your Nginx `server` block (handling port 443 with SSL):
+
+```nginx
+location / {
+    proxy_pass http://localhost:8080; # or your docker container name
+
+    # 1. Disable all buffering for instant streaming of large payloads
+    proxy_buffering off;
+    proxy_request_buffering off;
+    client_max_body_size 0; # Disables Nginx upload size limits
+
+    # 2. Extend timeouts to handle large multi-megabyte transfers over slow networks
+    proxy_connect_timeout 3600s;
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+    send_timeout 3600s; # Crucial: prevents Nginx from cutting off slow pull streams
+
+    # 3. Standard headers for proxying
+    proxy_set_header Host \$http_host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+}
+```
+
 ## Docker
 
 A Docker Compose setup is included under `docker/docker-compose.yml`.
